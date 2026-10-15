@@ -1,0 +1,17 @@
+{
+  "name": "amethyst",
+  "version": "0.1.0",
+  "description": "Small violet Chromium browser with a diamond soul",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack:win": "electron-packager . Amethyst --platform=win32 --arch=x64 --out=dist --overwrite --icon=icon.ico --ignore=\"^/dist\" --ignore=\"^/node_modules/.cache\""
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "@electron/packager": "latest"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
+  }
+}

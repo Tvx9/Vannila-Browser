@@ -1,0 +1,538 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Amethyst</title>
+<style>
+:root{--bg:hsl(46 42% 5%);--panel:hsl(46 34% 9%);--tab:hsl(46 38% 7%);--line:hsl(46 30% 16%);--accent:hsl(46 92% 68%);--soft:hsl(46 100% 88%);--text:hsl(46 100% 96%);--dim:hsl(46 18% 62%);--shadow:0 10px 30px rgba(0,0,0,.5)}
+body.light{--bg:hsl(46 45% 96%);--panel:#ffffff;--tab:hsl(46 35% 92%);--line:hsl(46 40% 89%);--accent:hsl(46 65% 40%);--soft:hsl(46 55% 36%);--text:hsl(46 40% 14%);--dim:hsl(46 18% 50%);--shadow:0 10px 30px rgba(60,30,120,.18)}
+body.priv:not(.light){--bg:hsl(46 42% 3%);--panel:hsl(46 34% 5.4%);--tab:hsl(46 38% 4.2%)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font:13px system-ui,sans-serif;overflow:hidden;transition:background .25s,color .25s}
+body{display:flex;flex-direction:column}
+[hidden]{display:none!important}
+@keyframes tabIn{from{opacity:0;transform:translateY(8px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes tabOut{to{opacity:0;transform:scale(.9);flex-basis:0;min-width:0;padding:0}}
+@keyframes pop{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
+#titlebar{flex:none;display:flex;height:38px;align-items:flex-end;padding-left:env(titlebar-area-x,0px);padding-right:calc(100vw - env(titlebar-area-x,0px) - env(titlebar-area-width,100vw));-webkit-app-region:drag;app-region:drag}
+#titlebar button,.tab,#set{-webkit-app-region:no-drag;app-region:no-drag}
+#tabs{flex:1;min-width:0;display:flex;gap:3px;padding:6px 8px 0;height:38px;align-items:flex-end}
+#brand{display:none;align-items:center;gap:8px;height:100%;padding:0 14px;color:var(--dim);font-size:12px}
+@keyframes tabOutV{to{opacity:0;transform:scale(.95);height:0;padding:0;margin:-2px 0}}
+body.vtabs{--vw:220px}
+body.vtabs #brand{display:flex}
+body.vtabs #tabs{position:fixed;left:0;top:38px;bottom:0;width:var(--vw);flex:none;flex-direction:column;align-items:stretch;gap:3px;padding:8px;height:auto;overflow-y:auto;background:var(--bg);border-right:1px solid var(--line);z-index:2}
+body.vtabs .tab{flex:0 0 auto;height:34px;border-radius:10px;background:transparent}
+body.vtabs .tab.active{background:var(--panel)}body.vtabs .tab:hover:not(.active){background:var(--tab)}
+body.vtabs .tab.out{animation:tabOutV .16s ease forwards}
+body.vtabs #plus{width:100%;height:34px;padding:0 12px;text-align:left;font-size:13px;border-radius:10px}
+body.vtabs #plus::after{content:"  New tab"}
+body.vtabs #pv{margin:auto 0 0;padding:8px 12px}
+body.vtabs #bar,body.vtabs #marks,body.vtabs #views{margin-left:var(--vw)}
+.tab.new{animation:tabIn .2s ease}.tab.dragging{opacity:.4}
+.sws{display:flex;flex-wrap:wrap;gap:8px}.srow .sw{width:26px;height:26px;min-width:26px;padding:0;border-radius:50%;border:2px solid transparent}.srow .sw.on{border-color:var(--text)}
+.tab{display:flex;align-items:center;gap:7px;flex:0 1 180px;min-width:60px;height:32px;padding:0 12px;border-radius:12px 12px 0 0;background:var(--tab);color:var(--dim);cursor:default;transition:background .2s,color .2s}
+.tab:hover{color:var(--text)}.tab.active{background:var(--panel);color:var(--text)}
+.tab.out{animation:tabOut .16s ease forwards;pointer-events:none}
+.tab .d{color:var(--accent);font-size:9px}.tab img{width:14px;height:14px;border-radius:3px}
+.tab .t{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tab .x{opacity:.5;cursor:pointer;padding:0 3px;border-radius:6px}.tab .x:hover{opacity:1;background:var(--line)}
+#pv{margin-left:auto;color:var(--accent);font-size:12px;padding:0 8px 8px}
+#bar{display:flex;gap:5px;padding:6px 8px;height:46px;background:var(--panel);border-bottom:2px solid var(--line);transition:border-color .3s,background .25s}
+#bar.loading{border-bottom-color:var(--accent)}
+button{min-width:32px;border:0;border-radius:10px;background:transparent;color:var(--soft);font-size:16px;cursor:pointer;transition:background .15s,transform .1s}
+button:hover,button.on{background:var(--line)}button:active{transform:scale(.92)}
+#star.on{color:#f5b73b;background:none}#shield{font-size:13px}#shield.off{opacity:.4}
+#url{flex:1;min-width:0;padding:0 14px;border:1px solid var(--line);border-radius:18px;background:var(--bg);color:var(--text);font:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
+#url:focus,input:focus{border-color:var(--accent)}#url:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+#marks{display:flex;gap:3px;padding:4px 8px;background:var(--panel);border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap}
+#marks a{padding:3px 10px;border-radius:10px;color:var(--soft);cursor:pointer;transition:background .15s}#marks a:hover{background:var(--line)}
+#views{position:relative;flex:1}
+webview{position:absolute;inset:0;visibility:hidden}webview.active{visibility:visible}
+#find{position:absolute;top:10px;right:14px;z-index:4;display:flex;gap:6px;align-items:center;padding:6px 8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);animation:pop .16s ease}
+#find button{min-width:24px;height:24px}
+input{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:5px 10px;font:inherit;outline:none}
+#panel{position:absolute;top:10px;right:10px;bottom:10px;width:340px;z-index:5;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);transform:translateX(28px);opacity:0;visibility:hidden;transition:transform .24s cubic-bezier(.2,.8,.2,1),opacity .2s,visibility 0s .24s}
+#panel.open{transform:none;opacity:1;visibility:visible;transition:transform .24s cubic-bezier(.2,.8,.2,1),opacity .2s}
+#phead{display:flex;align-items:center;gap:4px;padding:10px 10px 8px}
+#ptabs{display:flex;gap:2px;flex:1}#ptabs button{flex:1;height:28px;font-size:12px}
+#pclose{height:28px}
+#pf{margin:0 10px 8px}#plist{flex:1;overflow:auto;padding:0 8px 8px}
+.row{display:flex;align-items:center;border-radius:12px;transition:background .15s}.row:hover{background:var(--line)}
+.row a{flex:1;min-width:0;padding:7px 10px;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.row small{display:block;color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+.row i{padding:4px 10px;cursor:pointer;font-style:normal;color:var(--dim)}
+.empty{color:var(--dim);padding:14px 10px}.set{display:block;padding:10px}.set select{margin-left:6px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
+#clr{margin:8px 10px;padding:6px 14px;background:var(--line)}
+#menu{position:absolute;top:86px;right:10px;z-index:9;min-width:230px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);animation:pop .15s ease}
+#menu div{display:flex;justify-content:space-between;gap:18px;padding:7px 12px;border-radius:9px;cursor:pointer}
+#menu div:hover{background:var(--line)}#menu small{color:var(--dim)}
+#sug{position:fixed;z-index:20;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);animation:pop .12s ease}
+#sug div{display:flex;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#sug div.sel,#sug div:hover{background:var(--line)}#sug span{color:var(--accent);width:14px;text-align:center}
+#sug small{color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+#prof{min-width:32px;padding:0}.av{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;color:#fff;font:600 12px system-ui;flex:none}
+#pmenu{position:absolute;top:86px;right:50px;z-index:9;min-width:210px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);animation:pop .15s ease}
+#pmenu div{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:9px;cursor:pointer}#pmenu div:hover{background:var(--line)}#pmenu small{margin-left:auto;color:var(--dim)}
+#set{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(0,0,0,.45);opacity:0;visibility:hidden;transition:opacity .2s,visibility 0s .2s}
+#set.open{opacity:1;visibility:visible;transition:opacity .2s}
+#setbox{position:relative;display:flex;width:min(920px,94vw);height:min(640px,88vh);background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;transform:scale(.97);transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+#set.open #setbox{transform:none}
+#snav{width:210px;padding:16px 10px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+#snav button{height:36px;text-align:left;padding:0 14px;font-size:13px}
+#smain{flex:1;overflow:auto;padding:24px 32px}#smain h2{font-size:18px;font-weight:500;margin-bottom:12px}
+.srow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.srow>span{flex:1;min-width:160px}
+.srow button{padding:6px 14px;background:var(--line);font-size:12px;height:30px}.srow input:not([type]){flex:1;min-width:120px}
+.srow input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+select{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit}
+#sclose{position:absolute;top:10px;right:12px}.smsg{color:var(--accent);padding:10px 0}.shint{color:var(--dim);padding:10px 0;font-size:12px}
+</style>
+</head>
+<body>
+<div id="titlebar"><span id="brand">◆ Amethyst</span><div id="tabs"><button id="plus" title="New tab (Ctrl+T)">+</button><span id="pv" hidden>◆ Private</span></div></div>
+<div id="bar">
+  <button id="back" title="Back">‹</button><button id="fwd" title="Forward">›</button><button id="reload" title="Reload">↻</button>
+  <button id="star" title="Bookmark (Ctrl+D)">☆</button>
+  <input id="url" placeholder="Search or enter address" spellcheck="false">
+  <button id="shield" title="Ad & tracker shield">🛡 0</button>
+  <button id="dlb" title="Side Panel (Ctrl+J)">≣</button>
+  <button id="prof" title="Profile"></button>
+  <button id="menub" title="Menu">⋮</button>
+</div>
+<div id="marks" hidden></div>
+<div id="menu" hidden></div>
+<div id="sug" hidden></div>
+<div id="pmenu" hidden></div>
+<div id="set"><div id="setbox"><nav id="snav"></nav><main id="smain"></main><button id="sclose" title="Close (Esc)">×</button></div></div>
+<div id="views">
+  <div id="find" hidden><input id="fin" placeholder="Find in page" size="18"><span id="fcount"></span><button id="fx">×</button></div>
+  <div id="panel">
+    <div id="phead"><div id="ptabs"><button>Bookmarks</button><button>History</button><button>Downloads</button></div><button id="pclose" title="Close (Esc)">×</button></div>
+    <input id="pf" placeholder="Filter"><div id="plist"></div>
+  </div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const qs = new URLSearchParams(location.search), priv = qs.has('private'), profileId = qs.get('profile') || 'default', privPart = 'private-' + Math.random().toString(36).slice(2);
+if (priv) { document.body.classList.add('priv'); document.title = 'Amethyst — Private'; $('#pv').hidden = false; }
+
+const ENGINES = { DuckDuckGo: 'https://duckduckgo.com/?q=', Google: 'https://www.google.com/search?q=', Brave: 'https://search.brave.com/search?q=', Bing: 'https://www.bing.com/search?q=' };
+let START;
+const THEME_VARS = ['bg', 'panel', 'line', 'accent', 'soft', 'text', 'dim'];
+const page = (body, css = '') => {
+  const c = getComputedStyle(document.body);
+  const vars = THEME_VARS.map(v => `--${v}:${c.getPropertyValue('--' + v).trim()}`).join(';');
+  return 'data:text/html;charset=utf-8,' + encodeURIComponent(
+    `<meta charset="utf-8"><title>New tab</title><style>:root{${vars}}*{box-sizing:border-box;margin:0}html,body{height:100%;background:var(--bg);color:var(--soft);font:14px system-ui,sans-serif}body{display:grid;place-items:center}${css}</style><body>${body}</body>`);
+};
+
+const START_CSS = `
+.w{display:flex;flex-direction:column;align-items:center;width:100%;padding:0 24px;margin-top:-4vh}
+.w>*{opacity:0;animation:up .6s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.logo::before{content:"";position:absolute;inset:-68px;z-index:-1;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 28%,transparent),transparent 65%)}
+h1{margin-top:26px;font-size:46px;font-weight:300;letter-spacing:.04em;color:var(--text)}
+.tag{margin-top:6px;font-size:13px;color:var(--dim)}
+form{display:flex;align-items:center;gap:12px;width:min(580px,100%);height:60px;margin-top:44px;padding:0 16px;background:var(--panel);border:1px solid var(--line);border-radius:20px;transition:border-color .2s,box-shadow .2s}
+form:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+form svg{flex:none;color:var(--dim)}
+input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--text);font:inherit;font-size:16px}
+input::placeholder{color:var(--dim);opacity:.7}
+kbd{font:10px/1 system-ui;letter-spacing:.06em;padding:5px 7px;border-radius:7px;background:var(--line);color:var(--dim)}
+.tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:30px 34px;margin-top:64px}
+.tiles a{display:flex;flex-direction:column;align-items:center;gap:10px;width:76px;color:var(--dim);font-size:12px;text-decoration:none;transition:color .2s,transform .2s}
+.tiles i{width:56px;height:56px;border-radius:18px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;color:var(--soft);transition:border-color .2s}
+.tiles a:hover{transform:translateY(-3px);color:var(--text)}.tiles a:hover i{border-color:var(--accent)}`;
+const START_JS = "var f=document.getElementById('f'),q=document.getElementById('q');f.onsubmit=function(e){e.preventDefault();var v=q.value.trim();if(!v)return;var u=v;if(v.indexOf('://')<0){u=(v.indexOf(' ')<0&&(v.indexOf('.')>0||v.indexOf('localhost')===0))?((v.indexOf('localhost')===0?'http://':'https://')+v):E+encodeURIComponent(v)}location.href=u};";
+const mkStart = () => {
+  START = page(`<div class="w">
+    <div class="logo" ><svg width="46" height="46" viewBox="0 0 64 64"><polygon points="32,4 58,26 32,60 6,26" fill="var(--accent)"/><polygon points="32,4 45,26 32,60 19,26" fill="var(--soft)" opacity=".55"/><polygon points="6,26 58,26 32,4" fill="var(--accent)" opacity=".6"/></svg></div>
+    <h1 >Amethyst</h1>
+    <form id="f" ><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" placeholder="Search the web or enter an address…" autocomplete="on" spellcheck="true"><kbd>RET</kbd></form>
+    <script>var E=${JSON.stringify(ENGINES[cfg.engine])};` + START_JS + `<\/script>`, START_CSS);
+};
+
+let tabs = [], active = null, closed = [], marks = [], hist = [], blocked = 0, panelTab = 'Bookmarks';
+let cfg = { engine: 'DuckDuckGo', shield: true, theme: 'light', suggest: true };
+const dl = new Map();
+const saveMarks = () => amethyst.set('marks', marks);
+const saveHist = () => !priv && amethyst.set('hist', hist);
+const saveCfg = () => amethyst.set('cfg', cfg);
+const HUES = { Red: 2, Blue: 215, Yellow: 46, Green: 130, Orange: 28, Purple: 262, Pink: 330, Mint: 162 };
+const ACCENT_VARS = ['--bg', '--panel', '--tab', '--line', '--accent', '--soft', '--text', '--dim'];
+function applyAccent() {
+  const st = document.body.style, name = cfg.accent || 'Yellow', h = HUES[name] ?? 262, light = cfg.theme === 'light';
+  if (name === 'Yellow') return ACCENT_VARS.forEach(v => st.removeProperty(v)); // default look
+  const gold = h > 35 && h < 70, k = priv ? 0.6 : 1;
+  const c = light
+    ? [`hsl(${h} 45% 96%)`, '#fff', `hsl(${h} 35% 92%)`, `hsl(${h} 40% 89%)`, `hsl(${h} 65% ${gold ? 40 : 50}%)`, `hsl(${h} 55% 36%)`, `hsl(${h} 40% 14%)`, `hsl(${h} 18% 50%)`]
+    : [`hsl(${h} 42% ${5 * k}%)`, `hsl(${h} 34% ${9 * k}%)`, `hsl(${h} 38% ${7 * k}%)`, `hsl(${h} 30% 16%)`, `hsl(${h} 92% 68%)`, `hsl(${h} 100% 88%)`, `hsl(${h} 100% 96%)`, `hsl(${h} 18% 62%)`];
+  ACCENT_VARS.forEach((v, i) => st.setProperty(v, c[i]));
+}
+const rgbHex = v => {
+  const p = document.createElement('i'); p.style.background = `var(${v})`; document.body.appendChild(p);
+  const rgb = (getComputedStyle(p).backgroundColor.match(/\d+/g) || [11, 7, 19]).slice(0, 3).map(Number); p.remove();
+  return '#' + rgb.map(x => x.toString(16).padStart(2, '0')).join('');
+};
+const applyTheme = () => {
+  document.body.classList.toggle('light', cfg.theme === 'light'); applyAccent(); mkStart();
+  amethyst.overlay(rgbHex('--bg'), rgbHex('--text')); // keep the native window buttons matching the theme
+};
+const applyLayout = () => document.body.classList.toggle('vtabs', cfg.tabs === 'vertical');
+const toggleTheme = () => { cfg.theme = cfg.theme === 'light' ? 'dark' : 'light'; saveCfg(); applyTheme(); if (panelOpen()) renderPanel(); };
+const saveSession = () => !priv && amethyst.set('session', tabs.map(t => t.url).filter(u => u && !u.startsWith('data:')));
+const act = f => active && active.ready && f(active.wv);
+
+function toURL(v) {
+  v = v.trim();
+  if (!v) return START;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) return v;
+  if (/^(localhost|[\w-]+(\.[\w-]+)+)(:\d+)?(\/.*)?$/i.test(v)) return (/^localhost/i.test(v) ? 'http://' : 'https://') + v;
+  return ENGINES[cfg.engine] + encodeURIComponent(v);
+}
+const go = u => {
+  const w = active.wv;
+  try { active.ready ? w.loadURL(u).catch(() => {}) : w.setAttribute('src', u); } catch { w.setAttribute('src', u); }
+};
+const reload = () => act(w => active.failed ? go(active.failed) : w.reload());
+
+function newTab(url = START) {
+  const wv = document.createElement('webview'), el = document.createElement('div');
+  el.className = 'tab new';
+  el.innerHTML = '<img hidden><span class="d">◆</span><span class="t">New tab</span><span class="x">×</span>';
+  if (priv) wv.setAttribute('partition', privPart); else if (profileId !== 'default') wv.setAttribute('partition', 'persist:p-' + profileId);
+  wv.setAttribute('src', url);
+  const tab = { wv, el, url: '', ready: false, loading: false, zoom: baseZoom() };
+  const q = s => el.querySelector(s), sync = () => active === tab && syncBar();
+
+  el.onclick = () => show(tab);
+  el.addEventListener('animationend', e => { if (e.animationName === 'tabIn') el.classList.remove('new'); });
+  el.draggable = true;
+  el.addEventListener('dragstart', e => {
+    dragTab = tab; el.classList.add('dragging');
+    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ''); }
+  });
+  el.addEventListener('dragend', () => { dragTab = null; el.classList.remove('dragging'); syncOrder(); });
+  el.addEventListener('dragover', e => {
+    if (!dragTab || dragTab === tab) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect(), v = document.body.classList.contains('vtabs');
+    el.parentNode.insertBefore(dragTab.el, (v ? e.clientY > r.top + r.height / 2 : e.clientX > r.left + r.width / 2) ? el.nextSibling : el);
+  });
+  q('.x').onclick = e => { e.stopPropagation(); close(tab); };
+  wv.addEventListener('dom-ready', () => { tab.ready = true; if (tab.zoom) wv.setZoomLevel(tab.zoom); });
+  wv.addEventListener('focus', () => { $('#menu').hidden = true; clearSug(); });
+  wv.addEventListener('page-title-updated', e => {
+    q('.t').textContent = e.title;
+    const h = hist.find(h => h.url === tab.url); if (h && !priv) { h.title = e.title; saveHist(); }
+  });
+  wv.addEventListener('page-favicon-updated', e => { q('img').src = e.favicons[0]; q('img').hidden = false; q('.d').hidden = true; });
+  wv.addEventListener('did-navigate', e => {
+    const isErr = e.url.startsWith('data:') && tab.failed;
+    if (!e.url.startsWith('data:')) tab.failed = null;
+    tab.url = isErr ? tab.failed : e.url; q('img').hidden = true; q('.d').hidden = false;
+    if (!priv && /^https?:/.test(e.url)) { hist.unshift({ url: e.url, title: '', t: Date.now() }); hist.length = Math.min(hist.length, 500); saveHist(); }
+    sync(); saveSession();
+  });
+  wv.addEventListener('did-navigate-in-page', e => { if (e.isMainFrame) { tab.url = e.url; sync(); saveSession(); } });
+  wv.addEventListener('found-in-page', e => { if (active === tab) $('#fcount').textContent = e.result.matches ? e.result.activeMatchOrdinal + '/' + e.result.matches : '0'; });
+  wv.addEventListener('did-fail-load', e => {
+    if (!e.isMainFrame || e.errorCode === -3) return;
+    tab.url = tab.failed = e.validatedURL;
+    wv.loadURL(page(`<div style="text-align:center"><h3>Can't reach this page</h3><p>${esc(e.errorDescription)}</p>
+       <p style="opacity:.6;font-size:12px">${esc(e.validatedURL)}</p></div>`));
+  });
+  wv.addEventListener('did-start-loading', () => { tab.loading = true; sync(); });
+  wv.addEventListener('did-stop-loading', () => { tab.loading = false; sync(); });
+
+  $('#tabs').insertBefore(el, $('#plus'));
+  $('#views').appendChild(wv);
+  tabs.push(tab); show(tab);
+  if (url === START) $('#url').focus();
+}
+
+function show(t) {
+  active = t;
+  tabs.forEach(x => { x.el.classList.toggle('active', x === t); x.wv.classList.toggle('active', x === t); });
+  syncBar();
+}
+function syncBar() {
+  const u = active.url;
+  $('#url').value = !u || u.startsWith('data:') ? '' : u;
+  $('#bar').classList.toggle('loading', active.loading);
+  const m = marks.some(b => b.url === u);
+  $('#star').textContent = m ? '★' : '☆'; $('#star').classList.toggle('on', m);
+}
+function close(t) {
+  const i = tabs.indexOf(t);
+  if (t.url && !t.url.startsWith('data:')) closed.push(t.url);
+  tabs.splice(i, 1); t.el.classList.add('out'); setTimeout(() => t.el.remove(), 170); t.wv.remove(); saveSession();
+  if (!tabs.length) return amethyst.closeWindow();
+  if (active === t) show(tabs[Math.max(0, i - 1)]);
+}
+let dragTab = null;
+function syncOrder() {
+  const order = [...document.querySelectorAll('#tabs .tab')];
+  tabs.sort((a, b) => order.indexOf(a.el) - order.indexOf(b.el)); // keep Ctrl+Tab order and saved session in sync
+  saveSession();
+}
+$('#tabs').addEventListener('dragover', e => { // dropping on empty space moves the tab to the end
+  if (dragTab && e.target === $('#tabs')) { e.preventDefault(); $('#tabs').insertBefore(dragTab.el, $('#plus')); }
+});
+const cycle = d => show(tabs[(tabs.indexOf(active) + d + tabs.length) % tabs.length]);
+const zoom = d => act(w => { active.zoom = d == null ? baseZoom() : Math.max(-3, Math.min(5, active.zoom + d)); w.setZoomLevel(active.zoom); });
+
+// ---- bookmarks ----
+function toggleMark() {
+  const u = active.url; if (!u || u.startsWith('data:')) return;
+  const i = marks.findIndex(b => b.url === u);
+  i < 0 ? marks.push({ url: u, title: active.el.querySelector('.t').textContent }) : marks.splice(i, 1);
+  saveMarks(); renderMarks(); syncBar();
+}
+function renderMarks() {
+  const m = $('#marks'); m.hidden = cfg.marksBar === 'never' || (cfg.marksBar !== 'always' && !marks.length);
+  m.innerHTML = marks.map(b => `<a data-url="${esc(b.url)}" title="${esc(b.url)}">◆ ${esc((b.title || b.url).slice(0, 22))}</a>`).join('');
+}
+
+// ---- side panel: bookmarks / history / downloads / settings ----
+const panelOpen = () => $('#panel').classList.contains('open');
+function openPanel(t) { panelTab = t; $('#panel').classList.add('open'); renderPanel(); }
+const closePanel = () => $('#panel').classList.remove('open');
+const togglePanel = t => panelOpen() && panelTab === t ? closePanel() : openPanel(t);
+function renderPanel() {
+  const f = $('#pf').value.toLowerCase(), L = $('#plist');
+  $('#pf').hidden = panelTab === 'Settings';
+  document.querySelectorAll('#ptabs button').forEach(b => b.classList.toggle('on', b.textContent === panelTab));
+  const hit = x => !f || ((x.title || '') + x.url).toLowerCase().includes(f);
+  if (panelTab === 'Bookmarks') L.innerHTML = marks.map((b, i) => ({ b, i })).filter(o => hit(o.b)).map(({ b, i }) =>
+    `<div class="row"><a data-url="${esc(b.url)}">${esc(b.title || b.url)}<small>${esc(b.url)}</small></a><i data-del="${i}">×</i></div>`).join('') || '<p class="empty">No bookmarks yet. Press Ctrl+D on a page.</p>';
+  else if (panelTab === 'History') L.innerHTML = hist.filter(hit).slice(0, 150).map(h =>
+    `<div class="row"><a data-url="${esc(h.url)}">${esc(h.title || h.url)}<small>${new Date(h.t).toLocaleString()} · ${esc(h.url)}</small></a></div>`).join('') || '<p class="empty">Nothing here.</p>';
+  else if (panelTab === 'Downloads') L.innerHTML = [...dl.values()].reverse().map(d =>
+    `<div class="row"><a data-show="${esc(d.path)}">${esc(d.name)}<small>${d.state === 'completed' ? 'Done · click to show in folder' : d.state === 'progressing' ? Math.round(d.got / (d.total || d.got || 1) * 100) + '%' : d.state}</small></a></div>`).join('') || '<p class="empty">No downloads.</p>';
+  else L.innerHTML = `<label class="set">Search engine <select id="eng">${Object.keys(ENGINES).map(k => `<option ${k === cfg.engine ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+    <label class="set">Theme <select id="theme"><option value="dark" ${cfg.theme !== 'light' ? 'selected' : ''}>Dark</option><option value="light" ${cfg.theme === 'light' ? 'selected' : ''}>Light</option></select></label>
+    <label class="set"><input type="checkbox" id="shc" ${cfg.shield ? 'checked' : ''}> Block ads &amp; trackers</label>
+    <label class="set"><input type="checkbox" id="sgc" ${cfg.suggest ? 'checked' : ''}> Search suggestions</label><button id="clr">Clear history</button>`;
+}
+function setShield(on) { cfg.shield = on; amethyst.shield(on); saveCfg(); $('#shield').classList.toggle('off', !on); }
+
+// ---- find in page ----
+const fi = $('#fin');
+function openFind() { $('#find').hidden = false; fi.focus(); fi.select(); }
+function closeFind() { $('#find').hidden = true; act(w => w.stopFindInPage('clearSelection')); }
+fi.addEventListener('input', () => act(w => fi.value ? w.findInPage(fi.value) : w.stopFindInPage('clearSelection')));
+fi.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeFind();
+  else if (e.key === 'Enter' && fi.value) act(w => w.findInPage(fi.value, { findNext: true, forward: !e.shiftKey }));
+});
+$('#fx').onclick = closeFind;
+
+// ---- menu ----
+const MENU = [['New tab', 'Ctrl+T', () => newTab()], ['New window', 'Ctrl+N', () => amethyst.newWindow(false)],
+  ['New private window', 'Ctrl+Shift+N', () => amethyst.newWindow(true)], ['Bookmarks', '', () => togglePanel('Bookmarks')],
+  ['History', 'Ctrl+H', () => togglePanel('History')], ['Downloads', 'Ctrl+J', () => togglePanel('Downloads')],
+  ['Find in page', 'Ctrl+F', openFind], ['Print', 'Ctrl+P', () => act(w => w.print())],
+  ['Developer tools', 'F12', () => act(w => w.openDevTools())], ['Settings', '', () => openSettings()]];
+$('#menu').innerHTML = MENU.map((m, i) => `<div data-i="${i}">${m[0]}<small>${m[1]}</small></div>`).join('');
+$('#menu').onclick = e => { const i = e.target.closest('[data-i]'); if (i) { $('#menu').hidden = true; MENU[i.dataset.i][2](); } };
+
+// ---- wiring ----
+document.addEventListener('click', e => {
+  const u = e.target.closest('[data-url]');
+  if (u) { go(u.dataset.url); if (u.closest('#panel')) closePanel(); return; }
+  const d = e.target.closest('[data-del]'); if (d) { marks.splice(+d.dataset.del, 1); saveMarks(); renderMarks(); renderPanel(); syncBar(); return; }
+  const s = e.target.closest('[data-show]'); if (s) { amethyst.show(s.dataset.show); return; }
+  if (e.target.id === 'clr') { hist = []; saveHist(); }
+  if (e.target.closest('#ptabs button')) openPanel(e.target.textContent);
+  if (!e.target.closest('#menu,#menub')) $('#menu').hidden = true;
+  if (!e.target.closest('#pmenu,#prof')) $('#pmenu').hidden = true;
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'eng') { cfg.engine = e.target.value; saveCfg(); mkStart(); }
+  if (e.target.id === 'shc') setShield(e.target.checked);
+  if (e.target.id === 'theme') { cfg.theme = e.target.value; saveCfg(); applyTheme(); }
+  if (e.target.id === 'sgc') { cfg.suggest = e.target.checked; saveCfg(); }
+});
+$('#pf').addEventListener('input', renderPanel);
+$('#plus').onclick = () => newTab();
+$('#pclose').onclick = closePanel;
+$('#back').onclick = () => act(w => w.goBack());
+$('#fwd').onclick = () => act(w => w.goForward());
+$('#reload').onclick = reload;
+$('#star').onclick = toggleMark;
+$('#shield').onclick = () => setShield(!cfg.shield);
+$('#dlb').onclick = () => togglePanel('Downloads');
+$('#menub').onclick = () => $('#menu').hidden = !$('#menu').hidden;
+// ---- address-bar suggestions (bookmarks + history + search engine) ----
+const sug = $('#sug'), urlEl = $('#url');
+let sugItems = [], sugSel = -1, sugN = 0, sugTimer;
+function renderSug() {
+  sug.hidden = !sugItems.length;
+  sug.innerHTML = sugItems.map((x, i) => `<div class="${i === sugSel ? 'sel' : ''}" data-go="${esc(x.v)}"><span>${x.k}</span>${esc(x.t)}${x.s ? `<small>${esc(x.s)}</small>` : ''}</div>`).join('');
+  const r = urlEl.getBoundingClientRect();
+  Object.assign(sug.style, { left: r.left + 'px', top: r.bottom + 6 + 'px', width: r.width + 'px' });
+}
+function clearSug() { clearTimeout(sugTimer); sugN++; sugItems = []; sugSel = -1; renderSug(); }
+function pick(v) { clearSug(); go(toURL(v)); active.wv.focus(); }
+urlEl.addEventListener('input', () => {
+  clearTimeout(sugTimer); sugSel = -1;
+  const q = urlEl.value.trim(), ql = q.toLowerCase();
+  if (!q) return clearSug();
+  const seen = new Set(), local = [];
+  for (const x of [...marks.map(m => ({ ...m, k: '★' })), ...hist.map(h => ({ ...h, k: '◷' }))]) {
+    if (local.length >= 3) break;
+    if (!seen.has(x.url) && ((x.title || '') + x.url).toLowerCase().includes(ql)) { seen.add(x.url); local.push({ v: x.url, t: x.title || x.url, s: x.url, k: x.k }); }
+  }
+  sugItems = local; renderSug();
+  if (!cfg.suggest) return;
+  const n = ++sugN;
+  sugTimer = setTimeout(async () => {
+    const r = await amethyst.suggest(cfg.engine, q);
+    if (n !== sugN || document.activeElement !== urlEl) return;
+    sugItems = [...local, ...r.filter(x => x !== q).map(x => ({ v: x, t: x, k: '⌕' }))]; renderSug();
+  }, 120);
+});
+urlEl.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (!sugItems.length) return;
+    e.preventDefault();
+    sugSel = (sugSel + (e.key === 'ArrowDown' ? 1 : -1) + sugItems.length + 1) % (sugItems.length + 1) - 0;
+    if (sugSel === sugItems.length) sugSel = -1;
+    renderSug();
+  } else if (e.key === 'Enter') pick(sugSel >= 0 ? sugItems[sugSel].v : urlEl.value);
+  else if (e.key === 'Escape') clearSug();
+});
+urlEl.addEventListener('blur', () => setTimeout(clearSug, 100));
+sug.addEventListener('mousedown', e => { e.preventDefault(); const d = e.target.closest('[data-go]'); if (d) pick(d.dataset.go); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePanel(); closeSettings(); $('#menu').hidden = true; $('#pmenu').hidden = true; } });
+
+// ---- profiles ----
+const PALETTE = ['#9b6bff', '#ec6b9a', '#3fb8af', '#f5a623', '#5b8def', '#7bc86c'];
+let profiles = [];
+const curProf = () => profiles.find(p => p.id === profileId) || profiles[0] || { id: '', name: '?', color: '#9b6bff' };
+const avatar = p => `<b class="av" style="background:${esc(p.color)}">${esc((p.name || '?').trim().charAt(0).toUpperCase())}</b>`;
+async function loadProfiles() {
+  profiles = (await amethyst.profiles()).profiles;
+  $('#prof').innerHTML = priv ? '◆' : avatar(curProf());
+  $('#prof').title = priv ? 'Private window' : curProf().name;
+}
+$('#prof').onclick = () => {
+  const m = $('#pmenu');
+  m.innerHTML = profiles.map(p => `<div data-pf="${esc(p.id)}">${avatar(p)}${esc(p.name)}${p.id === curProf().id ? '<small>current</small>' : ''}</div>`).join('') + '<div data-pf="*">⚙ Add / manage profiles…</div>';
+  m.hidden = !m.hidden;
+};
+$('#pmenu').onclick = e => {
+  const d = e.target.closest('[data-pf]'); if (!d) return;
+  $('#pmenu').hidden = true;
+  if (d.dataset.pf === '*') openSettings('Profiles'); else if (d.dataset.pf !== curProf().id) amethyst.openProfile(d.dataset.pf);
+};
+
+// ---- settings ----
+function baseZoom() { return Math.log((cfg.zoom || 100) / 100) / Math.log(1.2); }
+const SET_TABS = ['Main', 'Profiles', 'Appearance', 'Privacy & security', 'Downloads', 'Extensions', 'About'];
+let setTab = 'Main', exts = [], setMsg = '';
+const sel = (k, opts, def, num) => `<select data-cfg="${k}" ${num ? 'data-num="1"' : ''}>${opts.map(([v, l]) => `<option value="${v}" ${String(cfg[k] ?? def) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+const row = (l, c) => `<div class="srow"><span>${l}</span>${c}</div>`;
+const chk = (k, l, def) => row(l, `<input type="checkbox" data-cfg="${k}" ${(cfg[k] ?? def) ? 'checked' : ''}>`);
+const btn = (a, l, id = '') => `<button data-act="${a}" data-id="${esc(id)}">${l}</button>`;
+function renderSet() {
+  document.querySelectorAll('#snav button').forEach(b => b.classList.toggle('on', b.textContent === setTab));
+  const T = {
+    'Main': () => row('Search engine used in the address bar', sel('engine', Object.keys(ENGINES).map(k => [k, k]), 'DuckDuckGo')) + chk('suggest', 'Show search suggestions', true)
+      + row('When Amethyst starts', sel('startup', [['continue', 'Continue where you left off'], ['newtab', 'Open the new tab page'], ['url', 'Open a specific page']], 'continue'))
+      + (cfg.startup === 'url' ? row('Page', `<input data-cfg="home" value="${esc(cfg.home || '')}" placeholder="example.com">`) : ''),
+    Profiles: () => profiles.map(p => `<div class="srow">${avatar(p)}<input data-rename="${esc(p.id)}" value="${esc(p.name)}">${btn('pf-open', 'Open', p.id)}${profiles.length > 1 ? btn('pf-del', 'Delete', p.id) : ''}</div>`).join('')
+      + `<div class="srow"><input id="npn" placeholder="New profile name">${btn('pf-add', 'Add profile')}</div><p class="shint">Each profile has its own bookmarks, history, cookies, settings and extensions.</p>`,
+    Appearance: () => row('Theme', sel('theme', [['dark', 'Dark'], ['light', 'Light']], 'dark'))
+      + row('Accent color', `<div class="sws">${Object.keys(HUES).map(n => `<button class="sw ${(cfg.accent || 'Yellow') === n ? 'on' : ''}" data-act="accent" data-id="${n}" title="${n}" style="background:hsl(${HUES[n]} 85% 62%)"></button>`).join('')}</div>`)
+      + row('Tab bar position', sel('tabs', [['horizontal', 'Horizontal (top)'], ['vertical', 'Vertical (side)']], 'horizontal'))
+      + row('Show bookmarks bar', sel('marksBar', [['auto', 'When there are bookmarks'], ['always', 'Always'], ['never', 'Never']], 'auto'))
+      + row('Default page zoom', sel('zoom', [[80, '80%'], [90, '90%'], [100, '100%'], [110, '110%'], [125, '125%'], [150, '150%']], 100, true)),
+    'Privacy & security': () => chk('shield', 'Block ads and trackers', true) + chk('dnt', 'Send "Do Not Track" and Global Privacy Control signals', false)
+      + chk('httpsOnly', 'Always use secure connections (HTTPS-only)', false)
+      + row('Site permissions (camera, microphone, location, notifications)', sel('perm', [['ask', 'Ask me'], ['block', 'Block all'], ['allow', 'Allow all']], 'ask'))
+      + row('Clear browsing data', btn('clear', 'History', 'history') + btn('clear', 'Cookies & site data', 'cookies') + btn('clear', 'Cached files', 'cache') + btn('clear', 'Everything', 'all'))
+      + (setMsg ? `<p class="smsg">${esc(setMsg)}</p>` : ''),
+    Downloads: () => row('Save files to: ' + esc(cfg.dlDir || 'your Downloads folder'), btn('dir', 'Change…')) + chk('askDl', 'Ask where to save each file', false),
+    Extensions: () => row('Add from the Chrome Web Store', `<input id="extid" placeholder="Store link or extension ID">${btn('ext-add', 'Add')}`)
+      + row('Developer', btn('ext-load', 'Load unpacked…'))
+      + exts.map(x => row(`${esc(x.name)} <small>v${esc(x.version)}</small>`, btn('ext-rm', 'Remove', x.id))).join('')
+      + (setMsg ? `<p class="smsg">${esc(setMsg)}</p>` : '')
+      + '<p class="shint">Extensions run inside this profile. Toolbar buttons and popups are not supported yet; extensions that work through content scripts or background code work best.</p>',
+    About: () => row('Amethyst 0.2', `<span>${esc((navigator.userAgent.match(/Chrome\/[\d.]+/) || ['Chromium'])[0].replace('/', ' '))}</span>`)
+      + row('Reset all settings to defaults', btn('reset', 'Reset'))
+  };
+  $('#smain').innerHTML = `<h2>${setTab}</h2>` + (T[setTab] || T.Main)();
+}
+async function openSettings(t) {
+  if (t) setTab = t;
+  $('#set').classList.add('open'); renderSet();
+  exts = await amethyst.extList(); renderSet();
+}
+const closeSettings = () => $('#set').classList.remove('open');
+$('#snav').innerHTML = SET_TABS.map(t => `<button>${t}</button>`).join('');
+$('#snav').onclick = e => { if (e.target.tagName === 'BUTTON') { setTab = e.target.textContent; setMsg = ''; renderSet(); } };
+$('#sclose').onclick = closeSettings;
+$('#set').addEventListener('mousedown', e => { if (e.target.id === 'set') closeSettings(); });
+$('#smain').addEventListener('change', async e => {
+  const t = e.target, k = t.dataset.cfg;
+  if (t.dataset.rename) { await amethyst.editProfile(t.dataset.rename, t.value.trim() || 'Person'); await loadProfiles(); return renderSet(); }
+  if (!k) return;
+  cfg[k] = t.type === 'checkbox' ? t.checked : t.dataset.num ? +t.value : t.value;
+  saveCfg();
+  if (k === 'theme') applyTheme();
+  if (k === 'engine') mkStart();
+  if (k === 'marksBar') renderMarks();
+  if (k === 'tabs') applyLayout();
+  if (k === 'shield') setShield(cfg.shield);
+  if (k === 'startup') renderSet();
+});
+$('#smain').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, id = b.dataset.id; setMsg = '';
+  if (a === 'pf-open') amethyst.openProfile(id);
+  else if (a === 'pf-del') { if (confirm('Delete this profile and all of its data?')) { await amethyst.delProfile(id); await loadProfiles(); } }
+  else if (a === 'pf-add') { const n = $('#npn').value.trim(); if (n) { await amethyst.addProfile(n, PALETTE[profiles.length % PALETTE.length]); await loadProfiles(); } }
+  else if (a === 'clear') {
+    if (id === 'history' || id === 'all') { hist = []; saveHist(); }
+    if (id !== 'history') await amethyst.clear(id === 'all' ? ['cookies', 'cache'] : [id]);
+    setMsg = 'Cleared.';
+  }
+  else if (a === 'dir') { const d = await amethyst.pickDir(); if (d) { cfg.dlDir = d; saveCfg(); } }
+  else if (a === 'ext-load') { const r = await amethyst.extLoad(); exts = r.list; setMsg = r.error || ''; }
+  else if (a === 'ext-add') { setMsg = 'Installing…'; renderSet(); const r = await amethyst.extInstall($('#extid').value); exts = r.list; setMsg = r.error || 'Installed.'; }
+  else if (a === 'ext-rm') exts = await amethyst.extRemove(id);
+  else if (a === 'accent') { cfg.accent = id; saveCfg(); applyTheme(); }
+  else if (a === 'reset') { cfg = { engine: 'DuckDuckGo', shield: true, theme: 'dark', suggest: true }; saveCfg(); applyTheme(); applyLayout(); renderMarks(); }
+  renderSet();
+});
+
+amethyst.onOpenTab(u => newTab(u));
+amethyst.onBlocked(() => { blocked++; $('#shield').textContent = '🛡 ' + blocked; });
+amethyst.onDownload(d => {
+  const isNew = !dl.has(d.id); dl.set(d.id, d);
+  if (isNew) openPanel('Downloads'); else if (panelOpen() && panelTab === 'Downloads') renderPanel();
+});
+amethyst.onShortcut(k => ({
+  t: () => newTab(), 'S+t': () => closed.length && newTab(closed.pop()), w: () => close(active),
+  l: () => { $('#url').focus(); $('#url').select(); }, r: reload, f: openFind,
+  h: () => togglePanel('History'), j: () => togglePanel('Downloads'), d: toggleMark, p: () => act(w => w.print()),
+  n: () => amethyst.newWindow(false), 'S+n': () => amethyst.newWindow(true),
+  tab: () => cycle(1), 'S+tab': () => cycle(-1),
+  '=': () => zoom(0.5), '+': () => zoom(0.5), 'S+=': () => zoom(0.5), 'S++': () => zoom(0.5), '-': () => zoom(-0.5), '0': () => zoom(null),
+  f12: () => act(w => w.openDevTools()), f11: () => amethyst.fullscreen(), 'S+f12': () => {}
+}[k] || (() => {}))());
+
+(async () => {
+  const [m, h, c, s] = await Promise.all(['marks', 'hist', 'cfg', 'session'].map(k => amethyst.get(k)));
+  marks = m || []; hist = priv ? [] : h || []; cfg = { ...cfg, ...c };
+  applyTheme(); applyLayout(); setShield(cfg.shield); renderMarks();
+  await loadProfiles();
+  const urls = priv || cfg.startup === 'newtab' ? [START] : cfg.startup === 'url' && cfg.home ? [toURL(cfg.home)] : s && s.length ? s : [START];
+  urls.forEach(u => newTab(u));
+})();
+</script>
+</body>
+</html>
