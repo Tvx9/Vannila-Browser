@@ -19,6 +19,8 @@ const sessionFor = id => id === 'default' ? session.defaultSession : session.fro
 const prof = e => (BrowserWindow.fromWebContents(e.sender) || {}).profile || 'default';
 const sesProfile = new WeakMap();
 
+const BRAND = 'Vannila', VERSION = '0.2';
+
 ipcMain.handle('db:get', (e, k) => db(prof(e))[k]);
 ipcMain.on('db:set', (e, k, v) => { const p = prof(e); db(p)[k] = v; saveDb(p); });
 ipcMain.handle('prof:list', () => meta);
@@ -87,13 +89,6 @@ ipcMain.handle('pick:dir', async e => {
   return r.canceled ? null : r.filePaths[0];
 });
 
-// ---- ad & tracker shield ----
-const TRACKERS = ['doubleclick.net', 'googlesyndication.com', 'googleadservices.com', 'googletagservices.com',
-  'google-analytics.com', 'googletagmanager.com', 'adservice.google.com', 'connect.facebook.net', 'scorecardresearch.com',
-  'adnxs.com', 'taboola.com', 'outbrain.com', 'criteo.com', 'criteo.net', 'hotjar.com', 'amazon-adsystem.com',
-  'moatads.com', 'rubiconproject.com', 'pubmatic.com', 'ads-twitter.com', 'quantserve.com', 'adsrvr.org', 'mixpanel.com'];
-const isTracker = u => { try { const h = new URL(u).hostname; return TRACKERS.some(d => h === d || h.endsWith('.' + d)); } catch { return false; } };
-
 const SUGGEST = { DuckDuckGo: 'https://duckduckgo.com/ac/?type=list&q=', Google: 'https://suggestqueries.google.com/complete/search?client=firefox&q=',
   Brave: 'https://search.brave.com/api/suggest?q=', Bing: 'https://api.bing.com/osjson.aspx?query=' };
 ipcMain.handle('suggest', async (_, engine, q) => {
@@ -116,10 +111,11 @@ const SAFE_PERMS = ['fullscreen', 'clipboard-sanitized-write', 'pointerLock'];
 // Applies to every session (every profile + private)
 app.on('session-created', ses => {
   const P = () => sesProfile.get(ses) || 'default';
-  ses.setUserAgent(ses.getUserAgent().replace(/\s*(Electron|amethyst)\/\S+/gi, ''));
+  ses.setUserAgent(ses.getUserAgent()
+  .replace(/\s*(Electron|amethyst)\/\S+/gi, '')
+  .replace(/Chrome\/\S+/, `${BRAND}/${VERSION}`));
   ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
     const c = cfgOf(P());
-    if (c.shield !== false && isTracker(d.url)) { broadcast(P(), 'blocked'); return cb({ cancel: true }); }
     if (c.httpsOnly && d.url.startsWith('http://') && !/^http:\/\/(localhost|127\.|\[::1\]|192\.168\.|10\.)/.test(d.url)) return cb({ redirectURL: 'https://' + d.url.slice(7) });
     cb({});
   });
@@ -153,7 +149,7 @@ app.on('session-created', ses => {
 async function createWindow(priv, id) {
   if (!priv) await loadExts(id);
   const win = new BrowserWindow({
-    show: false;
+    show: false,
     width: 1000, height: 680, minWidth: 420, minHeight: 300,
     title: priv ? 'Amethyst — Private' : 'Amethyst',
     icon: path.join(__dirname, 'icon.png'),
