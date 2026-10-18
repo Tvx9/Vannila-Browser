@@ -505,7 +505,7 @@ $('#smain').addEventListener('click', async e => {
   else if (a === 'ext-add') { setMsg = 'Installing…'; renderSet(); const r = await amethyst.extInstall($('#extid').value); exts = r.list; setMsg = r.error || 'Installed.'; }
   else if (a === 'ext-rm') exts = await amethyst.extRemove(id);
   else if (a === 'accent') { cfg.accent = id; saveCfg(); applyTheme(); }
-  else if (a === 'reset') { cfg = { engine: 'DuckDuckGo', shield: true, theme: 'dark', suggest: true }; saveCfg(); applyTheme(); applyLayout(); renderMarks(); }
+  else if (a === 'reset') { cfg = { engine: 'DuckDuckGo', shield: true, theme: 'light', suggest: true }; saveCfg(); applyTheme(); applyLayout(); renderMarks(); }
   renderSet();
 });
 

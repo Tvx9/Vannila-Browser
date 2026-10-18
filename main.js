@@ -153,12 +153,13 @@ app.on('session-created', ses => {
 async function createWindow(priv, id) {
   if (!priv) await loadExts(id);
   const win = new BrowserWindow({
+    show: false;
     width: 1000, height: 680, minWidth: 420, minHeight: 300,
     title: priv ? 'Amethyst — Private' : 'Amethyst',
     icon: path.join(__dirname, 'icon.png'),
     backgroundColor: priv ? '#0a0211' : '#392746',
     autoHideMenuBar: true,
-    titleBarStyle: 'hidden', // custom title bar: tabs live in the title bar like Chrome
+    titleBarStyle: 'hidden',
     trafficLightPosition: { x: 12, y: 12 },
     ...(process.platform !== 'darwin' ? { titleBarOverlay: { color: priv ? '#0a0211' : '#392746', symbolColor: '#efeaff', height: 38 } } : {}),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), webviewTag: true, contextIsolation: true, sandbox: true }
@@ -167,6 +168,8 @@ async function createWindow(priv, id) {
   win.setMenuBarVisibility(false);
   wins.add(win); win.on('closed', () => wins.delete(win));
   win.loadFile(path.join(__dirname, 'index.html'), { search: `profile=${id}` + (priv ? '&private=1' : '') });
+  win.maximize();
+  win.show();
 }
 ipcMain.on('win:new', (e, priv) => createWindow(!!priv, prof(e)));
 ipcMain.on('win:close', e => { const w = BrowserWindow.fromWebContents(e.sender); if (w) w.close(); });
