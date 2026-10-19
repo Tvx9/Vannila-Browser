@@ -112,8 +112,7 @@ const SAFE_PERMS = ['fullscreen', 'clipboard-sanitized-write', 'pointerLock'];
 app.on('session-created', ses => {
   const P = () => sesProfile.get(ses) || 'default';
   ses.setUserAgent(ses.getUserAgent()
-  .replace(/\s*(Electron|amethyst)\/\S+/gi, '')
-  .replace(/Chrome\/\S+/, `${BRAND}/${VERSION}`));
+  .replace(/\s*(Electron|amethyst)\/\S+/gi, ''));
   ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
     const c = cfgOf(P());
     if (c.httpsOnly && d.url.startsWith('http://') && !/^http:\/\/(localhost|127\.|\[::1\]|192\.168\.|10\.)/.test(d.url)) return cb({ redirectURL: 'https://' + d.url.slice(7) });
@@ -151,7 +150,7 @@ async function createWindow(priv, id) {
   const win = new BrowserWindow({
     show: false,
     width: 1000, height: 680, minWidth: 420, minHeight: 300,
-    title: priv ? 'Amethyst — Private' : 'Amethyst',
+    title: priv ? 'Vannila — Private' : 'Vannila',
     icon: path.join(__dirname, 'icon.png'),
     backgroundColor: priv ? '#0a0211' : '#392746',
     autoHideMenuBar: true,
@@ -160,6 +159,7 @@ async function createWindow(priv, id) {
     ...(process.platform !== 'darwin' ? { titleBarOverlay: { color: priv ? '#0a0211' : '#392746', symbolColor: '#efeaff', height: 38 } } : {}),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), webviewTag: true, contextIsolation: true, sandbox: true }
   });
+  win.webContents.userAgent = 'Vannila 0.2'
   win.profile = id;
   win.setMenuBarVisibility(false);
   wins.add(win); win.on('closed', () => wins.delete(win));
