@@ -1,5 +1,5 @@
 {
-  "name": "amethyst",
+  "name": "vannila",
   "version": "0.1.0",
   "description": "Small violet Chromium browser with a diamond soul",
   "main": "main.js",
@@ -14,4 +14,5 @@
   "dependencies": {
     "adm-zip": "^0.5.16"
   }
+  
 }
